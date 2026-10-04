@@ -61,6 +61,8 @@ test.describe("VoiceOver — sunhauk.com corrected theme (preview_theme_id=19304
       await voiceOver.clearItemTextLog();
 
       const sections: Section[] = [];
+      // VoiceOver occasionally dies on the hosted runner ("VoiceOver not running"): restart it and go back to the web content.
+      const back = async () => { try { await voiceOver.navigateToWebContent(); } catch (e) { sections.push({ title: "(VoiceOver restarted)", phrases: [], end: String(e).slice(0, 100) }); try { await voiceOver.stop(); } catch {} await voiceOver.start(); await page.bringToFront().catch(() => {}); await voiceOver.navigateToWebContent(); } };
       const say = async () => (await voiceOver.lastSpokenPhrase()).replace(/\s+/g, " ").trim();
 
       // Generic loop with the same stop rules as the NVDA recorder: stop when the same phrase repeats
@@ -80,20 +82,20 @@ test.describe("VoiceOver — sunhauk.com corrected theme (preview_theme_id=19304
 
       await run("Lectura desde el principio (VO-Flecha derecha)", Math.round(pg.read * READ_SCALE), () => voiceOver.next({ capture: true }), false);
 
-      await voiceOver.navigateToWebContent();
+      await back();
       await run("Navegación por encabezados (VO-Cmd-H)", HEADING_STEPS, () => voiceOver.nextHeading({ capture: true }), true);
 
-      await voiceOver.navigateToWebContent();
+      await back();
       const vo: any = voiceOver;
       const landmarkCmd = vo.keyboardCommands?.findNextLandmark ?? vo.keyboardCommands?.findNextLandmarkOrItem;
       if (typeof vo.nextLandmark === "function") await run("Navegación por regiones/landmarks (VO-Cmd-L)", LANDMARK_STEPS, () => vo.nextLandmark({ capture: true }), true);
       else if (landmarkCmd) await run("Navegación por regiones/landmarks (VO-Cmd-L)", LANDMARK_STEPS, () => voiceOver.perform(landmarkCmd, { capture: true }), true);
       else sections.push({ title: "Navegación por regiones/landmarks (VO-Cmd-L)", phrases: [], end: "comando no disponible en esta versión de Guidepup" });
 
-      await voiceOver.navigateToWebContent();
+      await back();
       await run("Orden de Tab (tecla Tab)", TAB_STEPS, () => voiceOver.press("Tab"), false);
 
-      const spoken = await voiceOver.spokenPhraseLog();
+      const spoken: string[] = await voiceOver.spokenPhraseLog().catch(() => [] as string[]);
       const total = sections.reduce((a, s) => a + s.phrases.length, 0);
       const lines: string[] = [
         `Lector de pantalla: VoiceOver ${voiceOver.version ?? ""} (macOS ${release()}, sesión real conducida con Guidepup)`.replace(/\s+\(/, " ("),
