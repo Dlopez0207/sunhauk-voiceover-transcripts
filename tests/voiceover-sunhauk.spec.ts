@@ -38,6 +38,22 @@ test.describe("VoiceOver — sunhauk.com corrected theme (preview_theme_id=19304
       const theme = await page.evaluate(() => (window as any).Shopify?.theme ?? null);
       expect(theme?.id, "the corrected unpublished theme must be the one rendered").toBe(THEME_ID);
 
+      // Third-party Attentive "Sign Up via Text for Offers" dialog (app embed, not part of the theme): it confines
+      // the screen reader to its iframe. Dismiss it like a user would (its own Dismiss button), then fall back to
+      // Escape and finally to removing the overlay, so the session can reach the page content.
+      let popup = "not shown";
+      const attentive = page.locator('iframe[title*="Sign Up via Text"], iframe[src*="attn.tv"]').first();
+      if (await attentive.waitFor({ state: "visible", timeout: 12000 }).then(() => true).catch(() => false)) {
+        popup = "shown";
+        const frame = page.frameLocator('iframe[title*="Sign Up via Text"], iframe[src*="attn.tv"]').first();
+        const clicked = await frame.getByRole("button", { name: /dismiss|close/i }).first().click({ timeout: 5000 }).then(() => true).catch(() => false);
+        await page.waitForTimeout(1500);
+        let gone = !(await attentive.isVisible().catch(() => false));
+        if (!gone) { await page.keyboard.press("Escape"); await page.waitForTimeout(1500); gone = !(await attentive.isVisible().catch(() => false)); popup += clicked ? ", dismiss click + Escape" : ", Escape"; }
+        else popup += clicked ? ", closed with its Dismiss button" : ", closed";
+        if (!gone) { await page.evaluate(() => document.querySelectorAll('#attentive_overlay, [id^="attentive"]').forEach((e) => e.remove())); popup += ", overlay removed (could not be closed by keyboard)"; }
+      }
+
       await voiceOver.navigateToWebContent();
       await voiceOver.clearSpokenPhraseLog();
       await voiceOver.clearItemTextLog();
@@ -86,6 +102,7 @@ test.describe("VoiceOver — sunhauk.com corrected theme (preview_theme_id=19304
         `Runner: GitHub Actions ${process.env.RUNNER_OS_LABEL ?? "local"}`,
         `Idioma de la voz detectado: en`,
         `Modo: sesión real`,
+        `Popup de terceros (Attentive "Sign Up via Text"): ${popup}`,
         `Frases capturadas: ${total}`,
         ``,
         `Cada línea es una frase tal como la pronunció VoiceOver. Shopify inyecta su barra de vista previa en los temas no publicados; VoiceOver también la anuncia.`,
