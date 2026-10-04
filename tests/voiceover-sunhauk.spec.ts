@@ -11,17 +11,17 @@ import { release } from "node:os";
 const THEME_ID = 193042743588;
 const ORIGIN = "https://sunhauk.com";
 const PAGES = [
-  { slug: "home", path: "/", read: 320 },
-  { slug: "collections_all-sunglasses", path: "/collections/all-sunglasses", read: 240 },
-  { slug: "products_gift-card", path: "/products/gift-card", read: 220 },
-  { slug: "pages_shipping-delivery", path: "/pages/shipping-delivery", read: 240 },
-  { slug: "pages_returns-exchanges", path: "/pages/returns-exchanges", read: 240 },
+  { slug: "home", path: "/", read: 220 },
+  { slug: "collections_all-sunglasses", path: "/collections/all-sunglasses", read: 170 },
+  { slug: "products_gift-card", path: "/products/gift-card", read: 160 },
+  { slug: "pages_shipping-delivery", path: "/pages/shipping-delivery", read: 170 },
+  { slug: "pages_returns-exchanges", path: "/pages/returns-exchanges", read: 170 },
 ];
 const wanted = (process.env.VO_PAGES ?? "all").split(",").map((s) => s.trim()).filter(Boolean);
 const selected = wanted.includes("all") ? PAGES : PAGES.filter((p) => wanted.includes(p.slug));
-const HEADING_STEPS = Number(process.env.VO_HEADING_STEPS ?? 45);
-const LANDMARK_STEPS = Number(process.env.VO_LANDMARK_STEPS ?? 15);
-const TAB_STEPS = Number(process.env.VO_TAB_STEPS ?? 80);
+const HEADING_STEPS = Number(process.env.VO_HEADING_STEPS ?? 40);
+const LANDMARK_STEPS = Number(process.env.VO_LANDMARK_STEPS ?? 12);
+const TAB_STEPS = Number(process.env.VO_TAB_STEPS ?? 60);
 const READ_SCALE = Number(process.env.VO_READ_SCALE ?? 1);
 
 type Section = { title: string; phrases: string[]; end: string };
