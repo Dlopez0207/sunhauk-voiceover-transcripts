@@ -1,0 +1,74 @@
+name: VoiceOver transcripts (sunhauk.com preview theme)
+
+on:
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: "Comma-separated page slugs or 'all' (home, collections_all-sunglasses, products_gift-card, pages_shipping-delivery, pages_returns-exchanges)"
+        default: "all"
+        required: false
+      read_scale:
+        description: "Multiplier for the linear read-through length (1 = default per page)"
+        default: "1"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  voiceover:
+    name: VoiceOver / ${{ matrix.os }} / ${{ matrix.browser }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Safari-equivalent pairing (Playwright WebKit): all requested pages.
+          - os: macos-15
+            browser: webkit
+            pages: ${{ inputs.pages }}
+          # Chrome pairing: home page only (keeps the macOS minutes down; raise via the input if needed).
+          - os: macos-15
+            browser: chromium
+            pages: home
+    env:
+      VO_PAGES: ${{ matrix.pages }}
+      VO_READ_SCALE: ${{ inputs.read_scale }}
+      RUNNER_OS_LABEL: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      # Replaces the archived guidepup/setup-action (2026-09-26): grants accessibility permissions in the
+      # user TCC.db, enables AppleScript control of VoiceOver, suppresses the VoiceOver welcome dialog and
+      # turns on Do Not Disturb. Same step as Guidepup's own playwright-voiceover.yml.
+      - name: Prepare macOS for VoiceOver automation
+        run: npx -y @guidepup/setup@0.29.1 setup --ci
+
+      - name: Install npm dependencies
+        run: npm ci --no-audit --no-fund --no-progress
+
+      - name: Install Playwright browser
+        run: npx playwright install ${{ matrix.browser }}
+
+      # Downloads the VoiceOver preferences DMG matching this macOS version (manifest of @guidepup/guidepup).
+      - name: Install Guidepup VoiceOver assets
+        run: npx -y @guidepup/setup@0.29.1 install
+
+      - name: Run real VoiceOver sessions and write transcripts
+        run: npx playwright test --project=${{ matrix.browser }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: voiceover-transcripts-${{ matrix.os }}-${{ matrix.browser }}
+          if-no-files-found: warn
+          path: |
+            transcripts/**
+            test-results/**
+            playwright-report/**
