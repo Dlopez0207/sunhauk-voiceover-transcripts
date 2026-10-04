@@ -41,6 +41,8 @@ test.describe("VoiceOver — sunhauk.com corrected theme (preview_theme_id=19304
       // Third-party Attentive "Sign Up via Text for Offers" dialog (app embed, not part of the theme): it confines
       // the screen reader to its iframe. Dismiss it like a user would (its own Dismiss button), then fall back to
       // Escape and finally to removing the overlay, so the session can reach the page content.
+      // Cookie-consent banner (Pandectes app, third party), shown depending on the visitor's region: decline it.
+      await page.getByRole("button", { name: /^decline$/i }).first().click({ timeout: 4000 }).then(() => page.waitForTimeout(800)).catch(() => {});
       let popup = "not shown";
       const attentive = page.locator('iframe[title*="Sign Up via Text"], iframe[src*="attn.tv"]').first();
       if (await attentive.waitFor({ state: "visible", timeout: 12000 }).then(() => true).catch(() => false)) {
