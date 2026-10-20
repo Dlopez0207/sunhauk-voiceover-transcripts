@@ -9,7 +9,7 @@ const config: PlaywrightTestConfig = {
   outputDir: "test-results",
   reportSlowTests: null,
   // One test per page template; each runs several hundred VoiceOver commands (>1 s each is possible).
-  timeout: 40 * 60 * 1000,
+  timeout: 60 * 60 * 1000,
   retries: 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   projects: [

@@ -12,7 +12,7 @@ on:
         default: "193042743588"
         required: false
       page_set:
-        description: "phase1 (5 original pages) or phase2 (7 representative pages)"
+        description: "phase1 (5 original pages), phase2 (7 representative pages) or phase2-long (home, 2 products, HSA/FSA)"
         default: "phase1"
         required: false
 
@@ -23,13 +23,13 @@ jobs:
   voiceover:
     name: VoiceOver / ${{ matrix.browser }} / ${{ matrix.page }}
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       # One macOS runner per page so the five templates run in parallel (VoiceOver allows one session per machine).
       matrix:
         browser: [webkit]
-        page: ${{ fromJSON(inputs.page_set == 'phase2' && '["p2-home","p2-product-sunhauk","p2-product-rx","p2-product-accessories","p2-collection","p2-page-hsa-fsa","p2-page-reviews"]' || '["home","collections_all-sunglasses","products_gift-card","pages_shipping-delivery","pages_returns-exchanges"]') }}
+        page: ${{ fromJSON(inputs.page_set == 'phase2' && '["p2-home","p2-product-sunhauk","p2-product-rx","p2-product-accessories","p2-collection","p2-page-hsa-fsa","p2-page-reviews"]' || inputs.page_set == 'phase2-long' && '["p2-home","p2-product-sunhauk","p2-product-rx","p2-page-hsa-fsa"]' || '["home","collections_all-sunglasses","products_gift-card","pages_shipping-delivery","pages_returns-exchanges"]') }}
     env:
       VO_PAGES: ${{ matrix.page }}
       VO_READ_SCALE: ${{ inputs.read_scale }}

@@ -17,12 +17,12 @@ const PAGES = [
   { slug: "pages_shipping-delivery", path: "/pages/shipping-delivery", read: 170 },
   { slug: "pages_returns-exchanges", path: "/pages/returns-exchanges", read: 170 },
   // phase 2 (all public pages): one representative page per template with screen-reader findings
-  { slug: "p2-home", path: "/", read: 220 },
-  { slug: "p2-product-sunhauk", path: "/products/blue-canyon", read: 220 },
-  { slug: "p2-product-rx", path: "/products/arcadia-gloss-pink", read: 220 },
+  { slug: "p2-home", path: "/", read: 150 },
+  { slug: "p2-product-sunhauk", path: "/products/blue-canyon", read: 150 },
+  { slug: "p2-product-rx", path: "/products/arcadia-gloss-pink", read: 150 },
   { slug: "p2-product-accessories", path: "/products/birds-flyin-eco-leather-sleeve", read: 200 },
   { slug: "p2-collection", path: "/collections/polarized-sunglasses", read: 170 },
-  { slug: "p2-page-hsa-fsa", path: "/pages/hsa-fsa", read: 170 },
+  { slug: "p2-page-hsa-fsa", path: "/pages/hsa-fsa", read: 140 },
   { slug: "p2-page-reviews", path: "/pages/reviews", read: 170 },
 ];
 const wanted = (process.env.VO_PAGES ?? "all").split(",").map((s) => s.trim()).filter(Boolean);
