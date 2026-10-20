@@ -8,7 +8,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { release } from "node:os";
 
-const THEME_ID = 193042743588;
+const THEME_ID = Number(process.env.VO_THEME ?? 193042743588);
 const ORIGIN = "https://sunhauk.com";
 const PAGES = [
   { slug: "home", path: "/", read: 220 },
@@ -16,6 +16,14 @@ const PAGES = [
   { slug: "products_gift-card", path: "/products/gift-card", read: 160 },
   { slug: "pages_shipping-delivery", path: "/pages/shipping-delivery", read: 170 },
   { slug: "pages_returns-exchanges", path: "/pages/returns-exchanges", read: 170 },
+  // phase 2 (all public pages): one representative page per template with screen-reader findings
+  { slug: "p2-home", path: "/", read: 220 },
+  { slug: "p2-product-sunhauk", path: "/products/blue-canyon", read: 220 },
+  { slug: "p2-product-rx", path: "/products/arcadia-gloss-pink", read: 220 },
+  { slug: "p2-product-accessories", path: "/products/birds-flyin-eco-leather-sleeve", read: 200 },
+  { slug: "p2-collection", path: "/collections/polarized-sunglasses", read: 170 },
+  { slug: "p2-page-hsa-fsa", path: "/pages/hsa-fsa", read: 170 },
+  { slug: "p2-page-reviews", path: "/pages/reviews", read: 170 },
 ];
 const wanted = (process.env.VO_PAGES ?? "all").split(",").map((s) => s.trim()).filter(Boolean);
 const selected = wanted.includes("all") ? PAGES : PAGES.filter((p) => wanted.includes(p.slug));
@@ -27,7 +35,7 @@ const READ_SCALE = Number(process.env.VO_READ_SCALE ?? 1);
 type Section = { title: string; phrases: string[]; end: string };
 const num = (i: number) => String(i).padStart(3, " ");
 
-test.describe("VoiceOver — sunhauk.com corrected theme (preview_theme_id=193042743588)", () => {
+test.describe(`VoiceOver — sunhauk.com unpublished theme (preview_theme_id=${THEME_ID})`, () => {
   for (const pg of selected) {
     test(`${pg.slug}: read-through, headings, landmarks and Tab order`, async ({ page, voiceOver, browserName }, testInfo) => {
       const url = `${ORIGIN}${pg.path}?preview_theme_id=${THEME_ID}`;
@@ -36,7 +44,7 @@ test.describe("VoiceOver — sunhauk.com corrected theme (preview_theme_id=19304
       await page.locator("body").waitFor();
       await page.waitForTimeout(3000);
       const theme = await page.evaluate(() => (window as any).Shopify?.theme ?? null);
-      expect(theme?.id, "the corrected unpublished theme must be the one rendered").toBe(THEME_ID);
+      expect(theme?.id, "the requested unpublished theme must be the one rendered").toBe(THEME_ID);
 
       // Third-party Attentive "Sign Up via Text for Offers" dialog (app embed, not part of the theme): it confines
       // the screen reader to its iframe. Dismiss it like a user would (its own Dismiss button), then fall back to

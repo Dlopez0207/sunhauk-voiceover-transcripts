@@ -7,6 +7,14 @@ on:
         description: "Multiplier for the linear read-through length (1 = default per page)"
         default: "1"
         required: false
+      theme_id:
+        description: "Shopify theme ID rendered with ?preview_theme_id="
+        default: "193042743588"
+        required: false
+      page_set:
+        description: "phase1 (5 original pages) or phase2 (7 representative pages)"
+        default: "phase1"
+        required: false
 
 permissions:
   contents: read
@@ -20,16 +28,12 @@ jobs:
       fail-fast: false
       # One macOS runner per page so the five templates run in parallel (VoiceOver allows one session per machine).
       matrix:
-        include:
-          - { browser: webkit, page: home }
-          - { browser: webkit, page: collections_all-sunglasses }
-          - { browser: webkit, page: products_gift-card }
-          - { browser: webkit, page: pages_shipping-delivery }
-          - { browser: webkit, page: pages_returns-exchanges }
-          - { browser: chromium, page: home }
+        browser: [webkit]
+        page: ${{ fromJSON(inputs.page_set == 'phase2' && '["p2-home","p2-product-sunhauk","p2-product-rx","p2-product-accessories","p2-collection","p2-page-hsa-fsa","p2-page-reviews"]' || '["home","collections_all-sunglasses","products_gift-card","pages_shipping-delivery","pages_returns-exchanges"]') }}
     env:
       VO_PAGES: ${{ matrix.page }}
       VO_READ_SCALE: ${{ inputs.read_scale }}
+      VO_THEME: ${{ inputs.theme_id }}
       RUNNER_OS_LABEL: macos-15
     steps:
       - uses: actions/checkout@v6
