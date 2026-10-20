@@ -45,8 +45,10 @@ jobs:
 
       # Replaces the archived guidepup/setup-action: accessibility permissions in the user TCC.db, AppleScript
       # control of VoiceOver, VoiceOver welcome dialog suppressed, Do Not Disturb on (same as Guidepup's own CI).
-      - name: Prepare macOS for VoiceOver automation
-        run: npx -y @guidepup/setup@0.29.1 setup --ci
+      - name: Prepare macOS for VoiceOver automation (3 attempts; Do Not Disturb sometimes fails on fresh runners)
+        run: |
+          for i in 1 2 3; do npx -y @guidepup/setup@0.29.1 setup --ci && exit 0; echo "setup attempt $i failed"; sleep 10; done
+          echo "::warning::guidepup setup did not complete (Do Not Disturb); continuing"
 
       - name: Install npm dependencies
         run: npm ci --no-audit --no-fund --no-progress
@@ -56,6 +58,13 @@ jobs:
 
       - name: Install Guidepup VoiceOver assets
         run: npx -y @guidepup/setup@0.29.1 install
+
+      - name: Make sure no VoiceOver session is already running
+        run: |
+          osascript -e 'tell application "VoiceOver" to quit' 2>/dev/null || true
+          killall VoiceOver 2>/dev/null || true
+          sleep 3
+          pgrep -l VoiceOver || echo "VoiceOver not running"
 
       - name: Run the real VoiceOver session and write the transcript
         run: npx playwright test --project=${{ matrix.browser }}
