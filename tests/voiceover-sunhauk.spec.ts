@@ -27,11 +27,13 @@ const PAGES: { slug: string; path: string; read: number; prep?: "cart" | "drawer
   // round 3 (October 2026): policy pages, default page template, search, cart with one item, accessibility menu
   { slug: "r3-policy-terms", path: "/policies/terms-of-service", read: 200 },
   { slug: "r3-policy-refund", path: "/policies/refund-policy", read: 160 },
+  { slug: "r3-policy-shipping", path: "/policies/shipping-policy", read: 160 },
   { slug: "r3-page-rx-policy", path: "/pages/rx-policy", read: 140 },
   { slug: "r3-search", path: "/search?q=sunglasses", read: 150 },
   { slug: "r3-cart-page", path: "/cart", read: 150, prep: "cart" },
   { slug: "r3-cart-drawer", path: "/", read: 90, prep: "drawer" },
   { slug: "r3-menu-home", path: "/", read: 90, prep: "menu" },
+  { slug: "r3-menu-product", path: "/products/blue-canyon", read: 90, prep: "menu" },
 ];
 const wanted = (process.env.VO_PAGES ?? "all").split(",").map((s) => s.trim()).filter(Boolean);
 const selected = wanted.includes("all") ? PAGES : PAGES.filter((p) => wanted.includes(p.slug));

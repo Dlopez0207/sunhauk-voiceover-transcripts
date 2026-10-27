@@ -29,7 +29,7 @@ jobs:
       # One macOS runner per page so the five templates run in parallel (VoiceOver allows one session per machine).
       matrix:
         browser: [webkit]
-        page: ${{ fromJSON(inputs.page_set == 'phase2' && '["p2-home","p2-product-sunhauk","p2-product-rx","p2-product-accessories","p2-collection","p2-page-hsa-fsa","p2-page-reviews"]' || inputs.page_set == 'phase2-long' && '["p2-home","p2-product-sunhauk","p2-product-rx","p2-page-hsa-fsa"]' || inputs.page_set == 'round3' && '["r3-policy-terms","r3-policy-refund","r3-page-rx-policy","r3-search","r3-cart-page","r3-cart-drawer","r3-menu-home"]' || '["home","collections_all-sunglasses","products_gift-card","pages_shipping-delivery","pages_returns-exchanges"]') }}
+        page: ${{ fromJSON(inputs.page_set == 'phase2' && '["p2-home","p2-product-sunhauk","p2-product-rx","p2-product-accessories","p2-collection","p2-page-hsa-fsa","p2-page-reviews"]' || inputs.page_set == 'phase2-long' && '["p2-home","p2-product-sunhauk","p2-product-rx","p2-page-hsa-fsa"]' || inputs.page_set == 'round3' && '["r3-policy-terms","r3-policy-refund","r3-policy-shipping","r3-page-rx-policy","r3-search","r3-cart-page","r3-cart-drawer","r3-menu-home","r3-menu-product"]' || inputs.page_set == 'round3-extra' && '["r3-policy-shipping","r3-menu-product"]' || '["home","collections_all-sunglasses","products_gift-card","pages_shipping-delivery","pages_returns-exchanges"]') }}
     env:
       VO_PAGES: ${{ matrix.page }}
       VO_READ_SCALE: ${{ inputs.read_scale }}
