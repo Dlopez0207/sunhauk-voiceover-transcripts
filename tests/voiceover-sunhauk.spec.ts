@@ -10,7 +10,7 @@ import { release } from "node:os";
 
 const THEME_ID = Number(process.env.VO_THEME ?? 193042743588);
 const ORIGIN = "https://sunhauk.com";
-const PAGES = [
+const PAGES: { slug: string; path: string; read: number; prep?: "cart" | "drawer" | "menu" }[] = [
   { slug: "home", path: "/", read: 220 },
   { slug: "collections_all-sunglasses", path: "/collections/all-sunglasses", read: 170 },
   { slug: "products_gift-card", path: "/products/gift-card", read: 160 },
@@ -24,6 +24,14 @@ const PAGES = [
   { slug: "p2-collection", path: "/collections/polarized-sunglasses", read: 170 },
   { slug: "p2-page-hsa-fsa", path: "/pages/hsa-fsa", read: 140 },
   { slug: "p2-page-reviews", path: "/pages/reviews", read: 170 },
+  // round 3 (October 2026): policy pages, default page template, search, cart with one item, accessibility menu
+  { slug: "r3-policy-terms", path: "/policies/terms-of-service", read: 200 },
+  { slug: "r3-policy-refund", path: "/policies/refund-policy", read: 160 },
+  { slug: "r3-page-rx-policy", path: "/pages/rx-policy", read: 140 },
+  { slug: "r3-search", path: "/search?q=sunglasses", read: 150 },
+  { slug: "r3-cart-page", path: "/cart", read: 150, prep: "cart" },
+  { slug: "r3-cart-drawer", path: "/", read: 90, prep: "drawer" },
+  { slug: "r3-menu-home", path: "/", read: 90, prep: "menu" },
 ];
 const wanted = (process.env.VO_PAGES ?? "all").split(",").map((s) => s.trim()).filter(Boolean);
 const selected = wanted.includes("all") ? PAGES : PAGES.filter((p) => wanted.includes(p.slug));
@@ -38,7 +46,7 @@ const num = (i: number) => String(i).padStart(3, " ");
 test.describe(`VoiceOver — sunhauk.com unpublished theme (preview_theme_id=${THEME_ID})`, () => {
   for (const pg of selected) {
     test(`${pg.slug}: read-through, headings, landmarks and Tab order`, async ({ page, voiceOver, browserName }, testInfo) => {
-      const url = `${ORIGIN}${pg.path}?preview_theme_id=${THEME_ID}`;
+      const url = `${ORIGIN}${pg.path}${pg.path.includes("?") ? "&" : "?"}preview_theme_id=${THEME_ID}`;
       // Shopify answers 302 → same path and sets the preview cookie; Playwright follows it in the same context.
       await page.goto(url, { waitUntil: "load" });
       await page.locator("body").waitFor();
@@ -49,8 +57,8 @@ test.describe(`VoiceOver — sunhauk.com unpublished theme (preview_theme_id=${T
       // Third-party Attentive "Sign Up via Text for Offers" dialog (app embed, not part of the theme): it confines
       // the screen reader to its iframe. Dismiss it like a user would (its own Dismiss button), then fall back to
       // Escape and finally to removing the overlay, so the session can reach the page content.
-      // Cookie-consent banner (Pandectes app, third party), shown depending on the visitor's region: decline it.
-      await page.getByRole("button", { name: /^decline$/i }).first().click({ timeout: 4000 }).then(() => page.waitForTimeout(800)).catch(() => {});
+      // Cookie-consent banner (Pandectes app, third party), shown depending on the visitor's region: removed, never answered.
+      await page.evaluate(() => document.querySelectorAll("pandectes-cmp, #pandectes-banner").forEach((e) => e.remove())).catch(() => {});
       let popup = "not shown";
       const attentive = page.locator('iframe[title*="Sign Up via Text"], iframe[src*="attn.tv"]').first();
       if (await attentive.waitFor({ state: "visible", timeout: 12000 }).then(() => true).catch(() => false)) {
@@ -62,6 +70,30 @@ test.describe(`VoiceOver — sunhauk.com unpublished theme (preview_theme_id=${T
         if (!gone) { await page.keyboard.press("Escape"); await page.waitForTimeout(1500); gone = !(await attentive.isVisible().catch(() => false)); popup += clicked ? ", dismiss click + Escape" : ", Escape"; }
         else popup += clicked ? ", closed with its Dismiss button" : ", closed";
         if (!gone) { await page.evaluate(() => document.querySelectorAll('#attentive_overlay, [id^="attentive"]').forEach((e) => e.remove())); popup += ", overlay removed (could not be closed by keyboard)"; }
+      }
+
+      // Round 3 preparation. Cart: one item added with POST /cart/add.js (no checkout request), then the page reloads;
+      // drawer: the same, then the cart drawer is opened from the header Cart button; menu: the accessibility menu is
+      // opened from its floating button with the keyboard. The cart is emptied with POST /cart/clear.js at the end.
+      let prepNote = "none";
+      if (pg.prep === "cart" || pg.prep === "drawer") {
+        const added = await page.evaluate(async () => {
+          const p = await (await fetch("/products/aether.js", { cache: "no-store" })).json();
+          const v = p.variants.find((x: any) => x.available) || p.variants[0];
+          const r = await fetch("/cart/add.js", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: [{ id: v.id, quantity: 1 }] }) });
+          return `${r.status} ${p.title}`;
+        });
+        await page.reload({ waitUntil: "load" }); await page.waitForTimeout(3000);
+        await page.evaluate(() => document.querySelectorAll('pandectes-cmp, #pandectes-banner, #attentive_overlay, [id^="attentive_"], iframe[src*="attn.tv"]').forEach((e) => e.remove())).catch(() => {});
+        prepNote = `cart: one item added (${added})`;
+        if (pg.prep === "drawer") {
+          const ok = await page.locator('header button[aria-haspopup="dialog"]:has-text("Cart"), header #cart-icon-bubble').first().click({ timeout: 10000 }).then(() => true).catch(() => false);
+          await page.waitForTimeout(2500); prepNote += ok ? ", cart drawer opened" : ", cart drawer NOT opened";
+        }
+      } else if (pg.prep === "menu") {
+        const btn = page.getByRole("button", { name: "Open accessibility menu" }).first();
+        if (await btn.count()) { await btn.focus(); await page.keyboard.press("Enter"); await page.waitForTimeout(1500); prepNote = "accessibility menu opened with Enter"; }
+        else prepNote = "accessibility menu button NOT found";
       }
 
       await voiceOver.navigateToWebContent();
@@ -115,6 +147,7 @@ test.describe(`VoiceOver — sunhauk.com unpublished theme (preview_theme_id=${T
         `Idioma de la voz detectado: en`,
         `Modo: sesión real`,
         `Popup de terceros (Attentive "Sign Up via Text"): ${popup}`,
+        `Preparación: ${prepNote}`,
         `Frases capturadas: ${total}`,
         ``,
         `Cada línea es una frase tal como la pronunció VoiceOver. Shopify inyecta su barra de vista previa en los temas no publicados; VoiceOver también la anuncia.`,
@@ -134,6 +167,7 @@ test.describe(`VoiceOver — sunhauk.com unpublished theme (preview_theme_id=${T
       const file = join(outDir, `voiceover-transcript-${browserName}.txt`);
       writeFileSync(file, lines.join("\n") + "\n", "utf8");
       await testInfo.attach(`voiceover-${pg.slug}-${browserName}`, { path: file, contentType: "text/plain" });
+      if (pg.prep === "cart" || pg.prep === "drawer") await page.evaluate(() => fetch("/cart/clear.js", { method: "POST", credentials: "same-origin" })).catch(() => {});
       expect(total).toBeGreaterThan(10);
     });
   }
